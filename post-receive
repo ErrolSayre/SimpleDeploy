@@ -55,6 +55,14 @@ email=`git config hooks.mailinglist`
 
 
 
+# Check to see if the email script should execute
+# Do this first since this email doesn't include any output from the deployment. At a later date email functionality may be built-in.
+if [ -n $email ]; then
+	. "$EMAIL_SCRIPT"
+fi
+
+
+
 # Check for configuration before continuing
 if [ $deploy != "true" ]; then
 	echo "SimpleDeploy aborted: Deployment is not enabled on this (remote) repo."
@@ -116,9 +124,4 @@ fi
 # Remove the temporary directory if used
 if [ -d "$working" ]; then
 	rm -rf "$working"
-fi
-
-# Determine if an email should be sent
-if [ -n $email ]; then
-	. "$EMAIL_SCRIPT"
 fi
