@@ -1,0 +1,61 @@
+#!/bin/sh
+#
+# Copyright (c) 2012 Errol Sayre
+#
+# A globally usable post-receive deployment hook for Git, designed
+# to be used within Gitolite.
+#
+# This script is freely available for your modification with
+# attribution.
+#
+# This script utilizes git config values to determine how/where to
+# export content from a bare repo to some other destination via
+# rsync+ssh.
+#
+# Namespace your config section however you wish and enter the value
+# below as config_section.
+#
+# The simplest way to use this script is to assume rsync+ssh and specify
+# .destination.string as a complete "user@host:path" value. Utilizing
+# this default, rsync will use .gitignore as the argument for
+# --exclude-from.
+
+# -------------------------#
+# Deployment Configuration #
+# -------------------------#
+config_section="com.domain.deployment"
+
+
+
+# -------------#
+# Begin Script #
+# -------------#
+
+# look for the git directory to make use of config values
+GIT_DIR=`git rev-parse --git-dir 2>/dev/null`
+if [ -z "$GIT_DIR" ]; then
+	echo >&2 "fatal: post-receive: GIT_DIR not set"
+	exit 1
+fi
+echo "$GIT_DIR"
+
+
+
+# Read Configuration Data for deployment
+deploy=`git config "$config_section".enable`
+destination=`git config "$config_section".destination.string`
+
+
+
+# Check for configuration before continuing
+if [ -z "$deploy" ]; then
+	echo >&2 "fatal: post-receive: Deployment is not enabled"
+fi
+
+
+
+# Create a temporary directory to work from if necessary
+# This mktemp call has a wonky structure because I needed it to function the same on OS X and Solaris.
+if [ `git rev-parse --is-bare-repository` ]; then
+	export GIT_WORK_TREE=`mktemp -d -t git-working.XXXXXXXX`
+fi
