@@ -12,50 +12,113 @@
 # export content from a bare repo to some other destination via
 # rsync+ssh.
 #
-# Namespace your config section however you wish and enter the value
-# below as config_section.
+# Namespace your config section however you wish by changing the value
+# below in GIT_CONF_SECTION.
 #
-# The simplest way to use this script is to assume rsync+ssh and specify
-# .destination.string as a complete "user@host:path" value. Utilizing
-# this default, rsync will use .gitignore as the argument for
-# --exclude-from.
+# At minimum, you must set simpledeploy.enable=true and
+# simpledeploy.rsync-destination to an rsync+ssh "user@host:path" value.
+# Utilizing this default, rsync will use .gitignore as the argument for
+# --exclude-from unless one is set via *.rsync-exclude configuration.
+#
+# Since the default rsync operation uses --delete, it is required that
+# any files on the destination that must not be removed (or overwritten)
+# be listed in .gitignore or another exclude file as configured.
 
-# -------------------------#
-# Deployment Configuration #
-# -------------------------#
-config_section="com.domain.deployment"
+# --------------------#
+# Begin Configuration #
+# --------------------#
+
+GIT_CONF_SECTION="simpledeploy"
+EMAIL_SCRIPT="$HOME/.gitolite/local-code/post-receive-email"
+
+# ------------------#
+# End Configuration #
+# ------------------#
 
 
-
-# -------------#
-# Begin Script #
-# -------------#
 
 # look for the git directory to make use of config values
 GIT_DIR=`git rev-parse --git-dir 2>/dev/null`
 if [ -z "$GIT_DIR" ]; then
-	echo >&2 "fatal: post-receive: GIT_DIR not set"
+	echo >&2 "SimpleDeploy failed: Unable to locate Git directory."
 	exit 1
 fi
-echo "$GIT_DIR"
 
 
 
 # Read Configuration Data for deployment
-deploy=`git config "$config_section".enable`
-destination=`git config "$config_section".destination.string`
+deploy=`git config "$GIT_CONF_SECTION".enable`
+destination=`git config "$GIT_CONF_SECTION".rsync-destination`
+exclude_file=`git config "$GIT_CONF_SECTION".rsync-exclude`
+: ${exclude_file:=".gitignore"}
+email=`git config hooks.mailinglist`
 
 
 
 # Check for configuration before continuing
-if [ -z "$deploy" ]; then
-	echo >&2 "fatal: post-receive: Deployment is not enabled"
+if [ $deploy != "true" ]; then
+	echo "SimpleDeploy aborted: Deployment is not enabled on this (remote) repo."
+	echo "  git config ${GIT_CONF_SECTION}.enable true"
+	exit 0
 fi
 
 
 
-# Create a temporary directory to work from if necessary
+# Before creating a temp directory, ensure the requested destination is supported
+if [ -z $destination ]; then
+	echo "SimpleDeploy failed: Currently only rsync+ssh URLs are supported."
+	echo "  git config ${GIT_CONF_SECTION}.rsync-destination user@host:path"
+	exit 1
+fi
+
+
+
+# Only work on bare repositories
+working=""
 # This mktemp call has a wonky structure because I needed it to function the same on OS X and Solaris.
 if [ `git rev-parse --is-bare-repository` ]; then
-	export GIT_WORK_TREE=`mktemp -d -t git-working.XXXXXXXX`
+	working=`mktemp -d -t git-working.XXXXXXXX`
+else
+	echo >&2 "SimpleDeploy failed: Currently only bare repositories are supported."
+	exit 1
+fi
+
+
+
+# Export the current contents to the working directory
+echo "Exporting content via git checkout -f"
+GIT_WORK_TREE="$working" git checkout -f
+
+
+
+# Look for an rsync exclude file as defined in the config
+exclude=""
+if [ -f "${working}/${exclude_file}" ]; then
+	exclude="${working}/${exclude_file}"
+fi
+
+
+
+# Issue the rsync command if applicable
+if [ -n $destination ]; then
+	echo "Syncing content from working directory to destination:"
+	if [ -n $exclude ]; then
+		echo "  rsync -av --delete --exclude-from=$exclude $working $destination"
+		rsync -av --delete --exclude-from="$exclude" "$working/" "$destination"
+	else
+		echo "  rsync -av --delete $working $destination"
+		rsync -av --delete "$working/" "$destination"
+	fi
+fi
+
+
+
+# Remove the temporary directory if used
+if [ -d "$working" ]; then
+	rm -rf "$working"
+fi
+
+# Determine if an email should be sent
+if [ -n $email ]; then
+	. "$EMAIL_SCRIPT"
 fi
