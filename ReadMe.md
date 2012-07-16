@@ -13,7 +13,7 @@ At the minimum, you must specify (on the remote repo) the following configuratio
 * simpledeploy.enable=true
 * simpledeploy.rsync-destination=user@host:path
 
-Since I utilize Gitloite for administration, I have these options specified within the .gitolite.rc file
+Since I utilize Gitloite for administration, I have these options specified within the .gitolite.rc file as valid options to be set per repo.
 
 ## Licensing
 
