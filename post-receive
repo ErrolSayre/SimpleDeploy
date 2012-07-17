@@ -82,11 +82,17 @@ fi
 
 
 
-# Only work on bare repositories
+# Only work on bare repositories, creating a temporary working directory
 working=""
 # This mktemp call has a wonky structure because I needed it to function the same on OS X and Solaris.
 if [ `git rev-parse --is-bare-repository` ]; then
-	working=`mktemp -d -t git-working.XXXXXXXX`
+	temp=`mktemp -d -t git-working.XXXXXXXX`
+	working="$temp/contents"
+	mkdir $working
+	if [ ! -d $working ]; then
+		echo >&2 "SimpleDeploy failed: Unable to create working directory."
+		exit 1
+	fi
 else
 	echo >&2 "SimpleDeploy failed: Currently only bare repositories are supported."
 	exit 1
@@ -124,6 +130,6 @@ fi
 
 
 # Remove the temporary directory if used
-if [ -d $working ]; then
-	rm -rf "$working"
+if [ -d $temp ]; then
+	rm -rf "$temp"
 fi
