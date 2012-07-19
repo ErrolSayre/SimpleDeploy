@@ -58,14 +58,14 @@ email=`git config hooks.mailinglist`
 
 # Check to see if the email script should execute
 # Do this first since this email doesn't include any output from the deployment. At a later date email functionality may be built-in.
-if [ $email ]; then
+if [ "$email" ]; then
 	. "$EMAIL_SCRIPT"
 fi
 
 
 
 # Check for configuration before continuing
-if [ $deploy != "true" ]; then
+if [ "$deploy" != "true" ]; then
 	echo "SimpleDeploy aborted: Deployment is not enabled on this (remote) repo."
 	echo "  git config ${GIT_CONF_SECTION}.enable true"
 	exit 0
@@ -74,7 +74,7 @@ fi
 
 
 # Before creating a temp directory, ensure the requested destination is supported
-if [ -z $destination ]; then
+if [ -z "$destination" ]; then
 	echo "SimpleDeploy failed: Currently only rsync+ssh URLs are supported."
 	echo "  git config ${GIT_CONF_SECTION}.rsync-destination user@host:path"
 	exit 1
@@ -88,8 +88,8 @@ working=""
 if [ `git rev-parse --is-bare-repository` ]; then
 	temp=`mktemp -d -t git-working.XXXXXXXX`
 	working="$temp/contents"
-	mkdir $working
-	if [ ! -d $working ]; then
+	mkdir "$working"
+	if [ ! -d "$working" ]; then
 		echo >&2 "SimpleDeploy failed: Unable to create working directory."
 		exit 1
 	fi
@@ -109,16 +109,16 @@ GIT_WORK_TREE="$working" git checkout -f
 # Look for an rsync exclude file as defined in the config
 exclude=""
 exclude_test="${working}/${exclude_file}"
-if [ -f $exclude_test ]; then
+if [ -f "$exclude_test" ]; then
 	exclude="$exclude_test"
 fi
 
 
 
 # Issue the rsync command if applicable
-if [ $destination ]; then
+if [ "$destination" ]; then
 	echo "Syncing content from working directory to destination:"
-	if [ $exclude ]; then
+	if [ "$exclude" ]; then
 		echo "  rsync -av --delete --exclude-from=$exclude $working/ $destination"
 		rsync -av --delete --exclude-from="$exclude" "$working/" "$destination"
 	else
@@ -130,6 +130,6 @@ fi
 
 
 # Remove the temporary directory if used
-if [ -d $temp ]; then
+if [ -d "$temp" ]; then
 	rm -rf "$temp"
 fi
