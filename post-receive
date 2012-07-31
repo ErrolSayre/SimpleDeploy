@@ -52,6 +52,7 @@ deploy=`git config "$GIT_CONF_SECTION".enable`
 destination=`git config "$GIT_CONF_SECTION".rsync-destination`
 exclude_file=`git config "$GIT_CONF_SECTION".rsync-exclude`
 : ${exclude_file:=".gitignore"}
+post_sync_host=`git config "$GIT_CONF_SECTION".post-sync-host`
 email=`git config hooks.mailinglist`
 
 
@@ -124,6 +125,18 @@ if [ "$destination" ]; then
 	else
 		echo "  rsync -av --delete $working/ $destination"
 		rsync -av --delete "$working/" "$destination"
+	fi
+fi
+
+
+
+# Issue the remote command if applicable
+if [ "$post_sync_host" ]; then
+	echo "Checking for post-sync commands to send to $post_sync_host"
+	post_sync_crontab=`git config "$GIT_CONF_SECTION".post-sync-crontab`
+	if [ "$post_sync_crontab" ]; then
+		echo "Post-sync crontab specified"
+		ssh "$post_sync_host" "crontab $post_sync_crontab;crontab -l"
 	fi
 fi
 
