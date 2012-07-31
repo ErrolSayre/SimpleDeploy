@@ -134,7 +134,15 @@ fi
 
 
 
-# Issue the remote command if applicable
+# Remove the temporary directory if used
+if [ -d "$temp" ]; then
+	rm -rf "$temp"
+fi
+
+
+
+# Post-sync commands
+# Currently only crontab deployment is supported.
 if [ "$post_sync_host" ]; then
 	echo "Checking for post-sync commands to send to $post_sync_host"
 	post_sync_crontab=`git config "$GIT_CONF_SECTION".post-sync-crontab`
@@ -142,11 +150,4 @@ if [ "$post_sync_host" ]; then
 		echo "Post-sync crontab specified"
 		ssh "$post_sync_host" "crontab $post_sync_crontab;crontab -l"
 	fi
-fi
-
-
-
-# Remove the temporary directory if used
-if [ -d "$temp" ]; then
-	rm -rf "$temp"
 fi
