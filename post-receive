@@ -67,8 +67,7 @@ fi
 
 # Check for configuration before continuing
 if [ "$deploy" != "true" ]; then
-	echo "SimpleDeploy aborted: Deployment is not enabled on this (remote) repo."
-	echo "  git config ${GIT_CONF_SECTION}.enable true"
+	echo "SimpleDeploy is not enabled on this (remote) repo."
 	exit 0
 fi
 
