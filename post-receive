@@ -73,6 +73,11 @@ fi
 
 
 
+# Pre-sync commands
+# None currently supported.
+
+
+
 # Before creating a temp directory, ensure the requested destination is supported
 if [ -z "$destination" ]; then
 	echo "SimpleDeploy failed: Currently only rsync+ssh URLs are supported."
